@@ -50,6 +50,7 @@
 #?(:clj (defn columns [table-name]
           (sort (keys (qf (str "SELECT * FROM '" (tables table-name) "' LIMIT 1"))))))
 #?(:clj (defn contents [table-name offset limit]
+          (Thread/sleep 2000)
           (rq (str "SELECT * FROM '" (tables table-name) "'"
                    " OFFSET " offset
                    " LIMIT " limit))))
@@ -104,8 +105,9 @@
                            (e/for [c columns]
                              (<% :td (dom/text (str (get row c)))))))))
                    (catch Pending _
-                     ;; This is showing always after initial showing,
-                     (<% :tr (<% :td
+                     ;; This is printed twice
+                     (println "PENDING")
+                     (<% :tr (<% :td ;{:colspan (count columns)}
                                  (<% :div.loading "Loading...")))))))
 
          (Paging. page last-page #(reset! !page %))))))
