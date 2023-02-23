@@ -1,0 +1,82 @@
+* Electric
+
+Electric Clojure (previously named Photon)
+
+** Fully reactive full stack Clojure web dev
+
+Fully reactive (everything is about streaming changes). Programming model
+feels close to React, but with the distinction that the framework covers
+backend as well... the reactivity crosses the network boundary!
+
+** Unifies frontend/backend dichotomy
+
+Proposes a different split between concerns. Instead of the split between
+separating concers to the frontend side and backend side, you can think
+about composing components and those components can use client side or
+server side stuff as they need.
+
+Remember when React was first introduced, it was derided for going against
+the MVC separation of concerns ("you want to combine logic and markup? that's crazy!").
+This feels like a similar change, it feels like the PHP/JSP code of yore
+("you are putting a database query inside your HTML component? that's crazy").
+
+Calling the server from UI is not crazy, every framework does it all the time.
+The difference is having to go through an event, which dispatches an async HTTP call,
+which has a callback that dispatches to result handling and eventually puts the
+result in an app db that causes a re-render.
+
+In Electric, the compiler will just handle that calling convention for you
+automatically.
+
+** Reactive dynamic scope
+
+Electric has reactive dynamic scoped bindings which you can use to bind things
+like db connection pools at the start of your application.
+
+This works similar to React context, it is not the same as regular Clojure dynamic
+binding.
+
+Bindings can be used in place of more elaborate DI libraries (eg. component/mount/etc).
+
+** Pros/cons
+
+At the time of writing (2023-02-23), the initial public release was 2 weeks ago.
+There are people who have been building things with Electric for many months,
+but be aware that there are some sharp edges on the bleeding edge.
+
+*** Pros
+
+**** No need for an API (no BFF separation)
+**** Can leverage client-side ecosystem
+
+You can integrate Electric with React stuff, if you want.
+
+**** Familiar UI model
+
+The model for making UI components looks quite familiar to eg. Reagent.
+The component is just a function and you can use atoms for local state.
+Atom and e/watch is basically the same as a useState hook.
+
+*** Cons
+
+**** Young project
+
+Not many people are using this for large scale production use yet.
+
+The dev tooling still needs work. The library has magic that is not easy
+to grok, so if (when) it breaks down, debugging might be difficult.
+
+Also the websocket communication is inscrutable (not human readable) and
+quite chatty at this point.
+
+**** No hiccup
+
+The surface syntax is different from hiccup. Get over it.
+
+**** Still a SPA
+
+If you don't like the JS ecosystem and don't want to build an "application"
+but a website, you can use ripley instead (shameless plug).
+
+The compiler at this stage needs a lot of memory and I don't know how fast it will
+be for a big application.
