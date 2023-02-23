@@ -96,10 +96,17 @@
                      (e/for [k columns]
                        (<% :th (dom/text k)))))
              (<% :tbody
-                 (e/for [row (e/server (contents table-name (* page page-size) page-size))]
-                   (<% :tr
-                       (e/for [c columns]
-                         (<% :td (dom/text (str (get row c)))))))))
+                 (try
+                   (e/server
+                    (e/for [row (contents table-name (* page page-size) page-size)]
+                      (e/client
+                       (<% :tr
+                           (e/for [c columns]
+                             (<% :td (dom/text (str (get row c)))))))))
+                   (catch Pending _
+                     ;; This is showing always after initial showing,
+                     (<% :tr (<% :td
+                                 (<% :div.loading "Loading...")))))))
 
          (Paging. page last-page #(reset! !page %))))))
 
