@@ -7,7 +7,8 @@
             [hyperfiddle.electric-ui4 :as ui]
             [contrib.element-syntax :refer-macros [<%]]
             [hyperfiddle.electric-ui4 :as ui])
-  #?(:clj (:import (java.sql DriverManager))))
+  (:import #?(:clj (java.sql DriverManager))
+           (hyperfiddle.electric Pending)))
 
 #?(:clj (def driver-class (delay (Class/forName "org.duckdb.DuckDBDriver"))))
 
@@ -55,15 +56,39 @@
 #?(:clj (defn row-count [table-name]
           (-> (qf (str "SELECT COUNT(*) FROM '" (tables table-name) "'")) first val)))
 
+(e/defn Paging [page last-page set-page-fn!]
+  (let [set-page-fn-evt! (e/fn [p e]
+                           (.preventDefault e)
+                           (set-page-fn! p))]
+    (<% :div.btn-group.m-4
+        (<% :button.btn {:on-click (e/partial 2 set-page-fn-evt! 0)} "<<")
+        (<% :button.btn {:on-click (e/partial 2 set-page-fn-evt! (dec page))} "<")
+        (let [!insert-page (atom false)
+              insert-page (e/watch !insert-page)]
+          (<% :button.btn {:on-click (e/fn [_] (reset! !insert-page true))}
+              (if insert-page
+                (<% :input.input.input-primary.text-black.w-24
+                    {:on-change (e/fn [e]
+                                  (->> e .-target .-value js/parseInt
+                                       set-page-fn!)
+                                  (reset! !insert-page false))}
+
+                  ;; observe can do mount/un-mount (there will likely be on-mount/un-mount in core soon)
+                    (new (m/observe #(do (% nil) ; reactive value must be set
+                                       ;; on-mount
+                                         (.focus dom/node)
+                                       ;; return on-unmount cleanup
+                                         (constantly nil)))))
+                (dom/text page))))
+        (<% :button.btn {:on-click (e/partial 2 set-page-fn-evt! (inc page))} ">")
+        (<% :button.btn {:on-click (e/partial 2 set-page-fn-evt! last-page)} ">>"))))
+
 (e/defn TableContents [table-name]
   (e/client
    (let [!page (atom 0)
          page (e/watch !page)
          [columns total-rows] (e/server [(columns table-name) (row-count table-name)])
-         last-page (dec (js/Math.ceil (/ total-rows page-size)))
-         set-page-fn! (e/fn [p e]
-                        (.preventDefault e)
-                        (reset! !page p))]
+         last-page (dec (js/Math.ceil (/ total-rows page-size)))]
      (<% :div
          (<% :table.table.table-zebra
              (<% :thead
@@ -71,28 +96,12 @@
                      (e/for [k columns]
                        (<% :th (dom/text k)))))
              (<% :tbody
-                 (e/for [row (e/server
-                              (println "HAETAAN " (* page page-size) page-size)
-                              (contents table-name (* page page-size) page-size))]
+                 (e/for [row (e/server (contents table-name (* page page-size) page-size))]
                    (<% :tr
                        (e/for [c columns]
                          (<% :td (dom/text (str (get row c)))))))))
 
-         (<% :div.btn-group.m-4
-             (<% :button.btn {:on-click (e/partial 2 set-page-fn! 0)} "<<")
-             (<% :button.btn {:on-click (e/partial 2 set-page-fn! (dec page))} "<")
-             (let [!insert-page (atom false)
-                   insert-page (e/watch !insert-page)]
-               (<% :button.btn {:on-click (e/fn [_] (reset! !insert-page true))}
-                   (if insert-page
-                     (<% :input.input.input-primary.text-black.w-24
-                         {:on-change (e/fn [e]
-                                       (->> e .-target .-value js/parseInt
-                                            (reset! !page))
-                                       (reset! !insert-page false))})
-                     (dom/text page))))
-             (<% :button.btn {:on-click (e/partial 2 set-page-fn! (inc page))} ">")
-             (<% :button.btn {:on-click (e/partial 2 set-page-fn! last-page)} ">>"))))))
+         (Paging. page last-page #(reset! !page %))))))
 
 (e/defn Listing []
   (e/client
